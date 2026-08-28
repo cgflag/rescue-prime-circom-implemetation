@@ -1,0 +1,10 @@
+build/
+node_modules/
+*.r1cs
+*.sym
+*.wasm
+*.wtns
+*.zkey
+verification_key.json
+public.json
+proof.json

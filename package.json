@@ -1,0 +1,26 @@
+{
+  "name": "rescue-prime-circom",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Educational Rescue-Prime-style hash circuits for Circom.",
+  "scripts": {
+    "test": "node --test",
+    "vector": "node scripts/rescue_prime_reference.js 1 2",
+    "vectors": "node scripts/generate_vectors.js",
+    "compile:example": "circom examples/hash_2.circom --r1cs --wasm --sym --O2 --inspect -o build"
+  },
+  "keywords": [
+    "circom",
+    "zero-knowledge",
+    "zkp",
+    "zk-friendly-hash",
+    "rescue-prime",
+    "hash",
+    "snark",
+    "circuits"
+  ],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  }
+}

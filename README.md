@@ -1,114 +1,178 @@
-# README
+# Rescue-Prime Circom
 
-Rescue-Prime 是一种基于密码学的哈希函数，它在区块链和零知识证明系统中有着广泛的应用。以下是该项目的 Markdown 说明文档，旨在帮助用户理解和使用这个 Rescue-Prime 的 Circom 实现。
+Educational Rescue-Prime-style hash circuits for Circom, with a small reference implementation, implementation notes, and reproducible test vectors.
 
-## 项目概述
+This repository packages a compact ZK-friendly hash construction as reusable Circom templates. It is designed for people studying Circom, zero-knowledge circuits, SNARK-friendly hash functions, and Rescue-Prime-style permutations: clone it, compile the example circuit, compare outputs against the JavaScript reference, and adapt the templates for your own parameter set.
 
-这个项目提供了 Rescue-Prime 哈希函数的 Circom 实现，允许用户在 zk-SNARKs 应用中使用它来生成哈希值。Circom 是一种用于创建零知识证明电路的语言，而 Rescue-Prime 是为这些类型的电路优化的哈希函数。
+> Status: experimental and unaudited. The bundled constants are kept as a demo parameter set, not as a production-ready cryptographic recommendation.
 
-## 项目依赖
+## Why This Exists
 
-要使用这个项目，您需要先安装 Circom 和相关的工具。以下是基本的步骤：
+ZK-friendly hash functions are often easy to cite but harder to inspect in circuit form. This project focuses on the engineering pieces that are useful when learning Circom:
 
-Circom的环境和依赖包括：
+- a readable Rescue-Prime-style permutation;
+- a sponge hash wrapper with explicit padding;
+- constrained constant exponentiation instead of unconstrained witness assignment;
+- a JavaScript reference implementation for test vectors;
+- implementation notes for common Circom mistakes;
+- minimal commands for compilation and local verification.
 
-​	Rust：Circom的核心工具是用Rust编写的Circom编译器。为了在系统中使用Rust，你可以安装rustup。
-​	Node.js和npm或yarn：Circom还分发了一系列npm包，所以Node.js和一些包管理器如npm或yarn应该在你的系统中可用。为了获得更好的性能，建议安装10或更高版本的Node.js。
-​	circomlib：Circom可以通过组合称为模板的较小通用电路来创建大型电路。circomlib是一个包含数百个电路（如比较器，哈希函数，数字签名，二进制和十进制转换器等）的circom模板库。
-​	snarkjs：snarkjs是一个npm包，其中包含从Circom生成的工件生成和验证ZK证明的代码。
-安装Circom的步骤如下：
+## Repository Layout
 
-**克隆Circom仓库**：
-
-```git clone https://github.com/iden3/circom.git51。```
-进入Circom目录，使用
-
-```cargo build --release```
-
-进行编译
-
-**安装二进制文件**：
-
-```cargo install --path circom```
-
-其他依赖环境的安装命令：
-1. **Rust**：
-    - 在Linux或macOS上，打开终端并输入以下命令：
-    ```bash
-    curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
-    ```
-    - 在Windows上，你可以访问[这个链接]，然后按照页面上的指示进行安装。
-
-2. **Node.js**：
-    - 在macOS和Linux上，你可以使用包管理器来安装Node.js。例如，使用Homebrew（macOS）或apt（Linux）：
-    ```bash
-    brew install node  # macOS
-    sudo apt install nodejs  # Linux
-    ```
-    - 在Windows上，你可以使用Chocolatey来安装Node.js：
-    ```bash
-    choco install nodejs
-    ```
-    - 或者，你可以从Node.js的[官方下载页面]下载适合你的平台的安装包。
-
-3. **circomlib**：
-    ```bash
-    npm install -g circomlib
-    ```
-
-4. **snarkjs**：
-    ```bash
-    npm install -g snarkjs@latest
-    ```
-
-## 文件结构
-
-- `rescue-XLIX-permutation-single-round.circom`
-
-这是Rescue-Prime哈希函数中的一个基本组成部分。每一轮的操作包括：
-
-​	前向S-box层：对状态中的每个元素应用幂映射（例如，α）。
-
-​	MDS矩阵：通过矩阵向量乘法将MDS矩阵应用于状态。
-
-​	轮常数注入：将下一个预定义的m个常数从轮常数列表{Ci}添加到状态中。
-
-​	反向（后向）S-box层：对状态中的每个元素应用逆幂映射（例如，α^-1）。
-
-- `rescue-XLIX-permutation.circom`
-
-  这是Rescue-Prime哈希函数的核心部分，它由N次迭代的Rescue-XLIX轮函数组成。
-
-- `rescue-prime-hash.circom`
-
-  这是基于Rescue-XLIX置换的哈希函数。它接收输入，通过Rescue-XLIX置换进行处理，然后输出哈希值。这是本项目的**主文件**。
-
-- `round-constants.circom`
-
-  这是Rescue-Prime哈希函数中用于轮常数注入的预定义常数。这些常数在每轮操作中被添加到状态中。
-
-- `rescue.circom`和`rescue-constants.circom`
-
-  这是用以参考的普通rescue哈希函数的实现，可以明显看到其中的欠约束问题。（使用<--赋值）
-
-## 使用示例
-
-### 编译Circom文件
-
-使用以下命令来编译Circom文件：
-```bash
-circom your_circuit.circom --r1cs --wasm --sym --c
-
-这个命令会生成以下几种类型的文件：
-
---r1cs：生成一个名为your_circuit.r1cs的文件，该文件以二进制格式包含电路的R1CS约束系统。
---wasm：生成一个WebAssembly程序，该程序接收私有和公共输入，并生成电路证明。
---sym：为电路的每个信号输出：由编译器给出的唯一编号，Circom合格名称，包含它的见证信号的编号，以及它所属的组件的（唯一）编号。
---c：生成一个C++程序，该程序接收私有和公共输入，并生成电路证明。
+```text
+.
+├── circuits/
+│   ├── rescue_prime.circom          # Main reusable Circom templates
+│   └── rescue_prime_params.circom   # Demo parameters and constants
+├── examples/
+│   └── hash_2.circom                # Small compile target for two inputs
+├── inputs/
+│   └── hash_2.json                  # Example witness input
+├── scripts/
+│   └── rescue_prime_reference.js    # JavaScript reference implementation
+├── test/
+│   └── reference.test.js            # Deterministic test vectors
+├── docs/
+│   ├── IMPLEMENTATION_NOTES.md      # Circom engineering notes
+│   ├── RESCUE_PRIME_IN_CIRCOM.md    # Conceptual walkthrough
+│   ├── TEST_VECTORS.md              # Fixed reference outputs
+│   ├── BENCHMARKS.md                # Benchmark table template
+│   └── PROMOTION.md                 # Publishing checklist
+└── rescue_prime/
+    └── rescue_prime/                # Original course implementation archive
 ```
 
-### 选择编译选项
-Circom编译器提供了许多编译选项，你可以通过运行以下命令来查看所有可用的选项和标志：
+## Quick Start
 
-```circom --help```
+Prerequisites:
 
+- Node.js 18 or newer
+- Circom 2.1.x
+
+Run the reference tests:
+
+```bash
+npm test
+```
+
+Generate the default demo vector for `[1, 2]`:
+
+```bash
+npm run vector
+```
+
+Generate a Markdown table of test vectors:
+
+```bash
+npm run vectors
+```
+
+Expected output:
+
+```text
+13175527490637101955204475963371910939559814590563829961986671867962204256507
+```
+
+Compile the sample circuit:
+
+```bash
+mkdir -p build
+npm run compile:example
+```
+
+The compile command expands to:
+
+```bash
+circom examples/hash_2.circom --r1cs --wasm --sym --O2 --inspect -o build
+```
+
+Circom output artifacts are ignored by git because they can be regenerated.
+
+## For ZK/Circom Readers
+
+If you are comparing Circom hash implementations, start here:
+
+- [Implementation notes](docs/IMPLEMENTATION_NOTES.md) explain the circuit choices and common pitfalls.
+- [Rescue-Prime in Circom](docs/RESCUE_PRIME_IN_CIRCOM.md) maps the hash structure to Circom templates.
+- [Test vectors](docs/TEST_VECTORS.md) provide fixed outputs for reference implementations.
+- [Benchmarks](docs/BENCHMARKS.md) is prepared for constraint counts and witness timing.
+
+## Circom API
+
+Import the main circuit file:
+
+```circom
+pragma circom 2.1.9;
+
+include "../circuits/rescue_prime.circom";
+
+component main = RescuePrimeHash(2);
+```
+
+Available templates:
+
+- `PowConst(exp, nBits)`: constrained exponentiation by a compile-time constant.
+- `RescuePrimeRound(roundIndex)`: one Rescue-Prime-style round.
+- `RescuePrimePermutation()`: full 27-round permutation over a 2-element state.
+- `RescuePrimeHash(nInputs)`: rate-1 sponge hash with a trailing `1` padding element.
+
+## Parameters
+
+The current demo parameter set is:
+
+| Parameter | Value |
+| --- | --- |
+| Circom prime | default `bn128` |
+| State width | `2` |
+| Rate | `1` |
+| Capacity | `1` |
+| Rounds | `27` |
+| Forward S-box | `x^5` |
+| Inverse S-box | `x^alpha_inv` over the `bn128` scalar field |
+
+Important notes:
+
+- Circom arithmetic is performed in the compiler-selected field. Use `circom --prime ...` if you intentionally target a different supported field.
+- The constants in `circuits/rescue_prime_params.circom` are demo constants inherited from the original experiment. For production use, regenerate and document parameters for the exact field and security target.
+- This repository has not been audited.
+
+## Fixed Vectors
+
+Permutation of the zero state:
+
+```text
+[
+  8338997341730993063591557245750628210390407507866638011071454420512184110442,
+  3054531388350922428914768649338519265180969547984979138884451111851945305553
+]
+```
+
+Hash of `[1, 2]`:
+
+```text
+13175527490637101955204475963371910939559814590563829961986671867962204256507
+```
+
+## What Was Improved From The Original Version
+
+The original code was a course experiment archive. The reusable circuit in `circuits/` fixes several engineering issues:
+
+- the final permutation output now returns the state after the last round;
+- the second MDS layer is applied to the inverse S-box output;
+- MDS linear combinations are reset per row;
+- inverse exponentiation is constrained with square-and-multiply;
+- sponge capacity state is preserved across absorption rounds;
+- the huge hard-coded `Main(65536)` entry point was replaced with small reusable templates and examples.
+
+## Roadmap
+
+- Add Circom witness tests that compare WASM output against the JavaScript reference.
+- Add generated parameters for a clearly documented target field.
+- Add benchmark tables for constraints and compile time.
+- Extend CI to compile the example circuit once Circom installation is added.
+
+## 中文说明
+
+这是一个面向学习和实验的 Rescue-Prime 风格 Circom 电路实现。当前版本已经整理为更适合开源展示的结构：核心电路、示例入口、输入样例、JavaScript 参考实现和固定测试向量都放在清晰的位置。
+
+请注意：当前参数集是实验/demo 参数，项目未经过安全审计，不建议直接用于生产级密码协议。
